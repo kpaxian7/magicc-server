@@ -189,7 +189,8 @@ async def remove_background_binary(request: Request):
         # 保存为PNG二进制
         buffer_start = time.time()
         buffer = BytesIO()
-        rgba_img.save(buffer, format="PNG")
+        # rgba_img.save(buffer, format="PNG")
+        rgba_img.save(buffer, format="PNG", compress_level=2, optimize=True)
         # rgba_img.save(buffer, format="WEBP", lossless=False, quality=90)
         buffer.seek(0)
         logger.info(f"[remove-background-binary #{request_id}] PNG编码完成，大小: {len(buffer.getvalue())}字节，耗时: {time.time() - buffer_start:.3f}秒")
