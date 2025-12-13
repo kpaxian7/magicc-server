@@ -8,7 +8,6 @@ from io import BytesIO
 
 # 获取项目根目录和模型路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# MODEL_PATH = os.path.join(BASE_DIR, "models", "rmbg-1.4.onnx")
 MODEL_PATH = "/home/models/rmbg/rmbg-1.4.onnx"
 # MODEL_PATH = "/Users/zelong/Desktop/mine/proj/models/rmbg-1.4.onnx"
 MODEL_INPUT_SIZE = (1024, 1024)  # (W, H)
