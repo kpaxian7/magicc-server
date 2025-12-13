@@ -18,6 +18,7 @@ except ImportError:
     logger_init.warning("pillow-heif not installed, HEIC/HEIF format not supported")
 
 from .processor import process_image_to_base64, remove_background
+from .qiniu_uploader import upload_image_to_qiniu
 
 # 配置日志
 logging.basicConfig(
@@ -208,6 +209,102 @@ async def remove_background_binary(request: Request):
         logger.error(f"[remove-background-binary #{request_id}] 处理失败，耗时: {elapsed:.3f}秒")
         logger.error(f"[remove-background-binary #{request_id}] 错误信息: {error_msg}")
         logger.error(f"[remove-background-binary #{request_id}] 错误堆栈:\n{error_trace}")
+
+        return response.json({
+            'success': False,
+            'error': f'处理图片时发生错误: {error_msg}'
+        }, status=500)
+
+
+@bp.route('/remove-background-link', methods=['POST'])
+async def remove_background_link(request: Request):
+    """
+    抠图接口 - 上传到七牛云并返回链接
+    
+    请求：
+        - method: POST
+        - content-type: multipart/form-data
+        - 参数: image (文件类型)
+    
+    返回：
+        - JSON 格式
+        - 成功: {"success": true, "data": {"image_url": "https://..."}}
+        - 失败: {"success": false, "error": "错误信息"}
+    """
+    start_time = time.time()
+    request_id = id(request)
+    logger.info(f"[remove-background-link #{request_id}] 收到请求")
+    
+    try:
+        # 检查是否有上传的文件
+        logger.debug(f"[remove-background-link #{request_id}] 检查上传文件")
+        if 'image' not in request.files:
+            logger.warning(f"[remove-background-link #{request_id}] 缺少image参数")
+            return response.json({
+                'success': False,
+                'error': '缺少 image 参数，请上传图片文件'
+            }, status=400)
+
+        # 获取上传的文件
+        image_file = request.files.get('image')
+
+        if not image_file:
+            logger.warning(f"[remove-background-link #{request_id}] 图片文件为空")
+            return response.json({
+                'success': False,
+                'error': '图片文件为空'
+            }, status=400)
+
+        # 读取图片数据
+        logger.info(f"[remove-background-link #{request_id}] 读取图片数据")
+        image_bytes = image_file.body
+        logger.info(f"[remove-background-link #{request_id}] 图片大小: {len(image_bytes)}字节")
+
+        # 将字节流转换为 PIL Image
+        img_load_start = time.time()
+        img = load_image_from_bytes(image_bytes, request_id)
+        logger.info(f"[remove-background-link #{request_id}] PIL Image加载完成，耗时: {time.time() - img_load_start:.3f}秒")
+
+        # 处理图片：抠图
+        process_start = time.time()
+        logger.info(f"[remove-background-link #{request_id}] 开始处理图片")
+        rgba_img = remove_background(img)
+        logger.info(f"[remove-background-link #{request_id}] 图片处理完成，耗时: {time.time() - process_start:.3f}秒")
+
+        # 上传到七牛云
+        upload_start = time.time()
+        logger.info(f"[remove-background-link #{request_id}] 开始上传到七牛云")
+        success, image_url, error_msg = upload_image_to_qiniu(rgba_img, format="PNG")
+        
+        if not success:
+            logger.error(f"[remove-background-link #{request_id}] 七牛云上传失败: {error_msg}")
+            return response.json({
+                'success': False,
+                'error': f'上传到七牛云失败: {error_msg}'
+            }, status=500)
+        
+        logger.info(f"[remove-background-link #{request_id}] 七牛云上传完成，耗时: {time.time() - upload_start:.3f}秒")
+
+        # 返回成功响应
+        total_elapsed = time.time() - start_time
+        logger.info(f"[remove-background-link #{request_id}] 请求处理完成，总耗时: {total_elapsed:.3f}秒")
+        logger.info(f"[remove-background-link #{request_id}] 图片链接: {image_url}")
+        
+        return response.json({
+            'success': True,
+            'data': {
+                'image_url': image_url
+            }
+        })
+
+    except Exception as e:
+        # 捕获所有异常并返回错误信息
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        elapsed = time.time() - start_time
+        logger.error(f"[remove-background-link #{request_id}] 处理失败，耗时: {elapsed:.3f}秒")
+        logger.error(f"[remove-background-link #{request_id}] 错误信息: {error_msg}")
+        logger.error(f"[remove-background-link #{request_id}] 错误堆栈:\n{error_trace}")
 
         return response.json({
             'success': False,

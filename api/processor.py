@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 # 获取项目根目录和模型路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = "/home/models/rmbg/rmbg-1.4.onnx"
-# MODEL_PATH = "/Users/zelong/Desktop/mine/proj/models/rmbg-1.4.onnx"
+# MODEL_PATH = "/home/models/rmbg/rmbg-1.4.onnx"
+MODEL_PATH = "/Users/zelong/Desktop/mine/proj/models/rmbg-1.4.onnx"
 MODEL_INPUT_SIZE = (1024, 1024)  # (W, H)
 
 # 全局会话对象，避免重复加载模型
@@ -167,7 +167,7 @@ def image_to_base64(img: Image.Image, format: str = "PNG") -> str:
     """
     将 PIL Image 转换为 base64 字符串
     
-    参数：
+    参数：a
         img: PIL Image 对象
         format: 图片格式，默认 PNG
     
