@@ -146,7 +146,8 @@ async def remove_background_binary(request: Request):
         # 保存为PNG二进制
         buffer_start = time.time()
         buffer = BytesIO()
-        rgba_img.save(buffer, format="PNG")
+        # rgba_img.save(buffer, format="PNG")
+        rgba_img.save(buffer, format="WEBP", lossless=True)
         # rgba_img.save(buffer, format="WEBP", lossless=False, quality=90)
         buffer.seek(0)
         logger.info(f"[remove-background-binary #{request_id}] PNG编码完成，大小: {len(buffer.getvalue())}字节，耗时: {time.time() - buffer_start:.3f}秒")
@@ -154,8 +155,8 @@ async def remove_background_binary(request: Request):
         total_elapsed = time.time() - start_time
         logger.info(f"[remove-background-binary #{request_id}] 请求处理完成，总耗时: {total_elapsed:.3f}秒")
         
-        return response.raw(buffer.getvalue(),content_type="image/png")
-        # return response.raw(buffer.getvalue(), content_type="image/webp")
+        # return response.raw(buffer.getvalue(),content_type="image/png")
+        return response.raw(buffer.getvalue(), content_type="image/webp")
     except Exception as e:
         # 捕获所有异常并返回错误信息
         error_msg = str(e)
