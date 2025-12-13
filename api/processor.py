@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 # 获取项目根目录和模型路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# MODEL_PATH = "/home/models/rmbg/rmbg-1.4.onnx"
-MODEL_PATH = "/Users/zelong/Desktop/mine/proj/models/rmbg-1.4.onnx"
+MODEL_PATH = "/home/models/rmbg/rmbg-1.4.onnx"
+# MODEL_PATH = "/Users/zelong/Desktop/mine/proj/models/rmbg-1.4.onnx"
 MODEL_INPUT_SIZE = (1024, 1024)  # (W, H)
 
 # 全局会话对象，避免重复加载模型
