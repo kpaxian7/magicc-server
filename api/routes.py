@@ -101,7 +101,7 @@ async def remove_background_binary(request: Request):
         rgba_img = remove_background(img)
 
         buffer = BytesIO()
-        rgba_img.save(buffer, format="PNG", optimize=True)
+        rgba_img.save(buffer, format="PNG")
         # rgba_img.save(buffer, format="WEBP", lossless=False, quality=90)
         buffer.seek(0)
 
