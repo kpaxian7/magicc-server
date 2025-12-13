@@ -101,13 +101,12 @@ async def remove_background_binary(request: Request):
         rgba_img = remove_background(img)
 
         buffer = BytesIO()
-        rgba_img.save(buffer, format="PNG")
+        # rgba_img.save(buffer, format="PNG")
+        rgba_img.save(buffer, format="WEBP", lossless=False, quality=90)
         buffer.seek(0)
 
-        return response.raw(
-            buffer.getvalue(),
-            content_type="image/png",
-        )
+        # return response.raw(buffer.getvalue(),content_type="image/png")
+        return response.raw(buffer.getvalue(), content_type="image/webp")
     except Exception as e:
         # 捕获所有异常并返回错误信息
         error_msg = str(e)
