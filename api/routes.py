@@ -7,6 +7,16 @@ import traceback
 import logging
 import time
 
+# 导入 pillow-heif 以支持 HEIC/HEIF 格式
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    logger_init = logging.getLogger(__name__)
+    logger_init.info("HEIF/HEIC support enabled")
+except ImportError:
+    logger_init = logging.getLogger(__name__)
+    logger_init.warning("pillow-heif not installed, HEIC/HEIF format not supported")
+
 from .processor import process_image_to_base64, remove_background
 
 # 配置日志
@@ -19,6 +29,39 @@ logger = logging.getLogger(__name__)
 
 # 创建蓝图
 bp = Blueprint('rmbg', url_prefix='/api')
+
+
+def load_image_from_bytes(image_bytes: bytes, request_id: int) -> Image.Image:
+    """
+    从字节流加载图片，支持多种格式包括 HEIC
+    
+    参数：
+        image_bytes: 图片字节数据
+        request_id: 请求ID用于日志
+    
+    返回：
+        PIL Image 对象
+    
+    抛出：
+        ValueError: 如果无法识别图片格式
+    """
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        # 尝试加载图片以验证格式
+        img.load()
+        logger.debug(f"[load_image #{request_id}] 图片格式: {img.format}, 模式: {img.mode}, 尺寸: {img.size}")
+        return img
+    except Exception as e:
+        logger.error(f"[load_image #{request_id}] 无法加载图片: {str(e)}")
+        # 尝试检测图片格式
+        try:
+            import imghdr
+            img_type = imghdr.what(None, h=image_bytes[:32])
+            logger.error(f"[load_image #{request_id}] 检测到的图片类型: {img_type}")
+        except:
+            pass
+        raise ValueError(f"无法识别或加载图片格式。请确保上传的是有效的图片文件（支持 JPEG, PNG, WEBP, HEIC 等格式）")
+
 
 
 @bp.route('/remove-background-full', methods=['POST'])
@@ -67,7 +110,7 @@ async def remove_background_full(request: Request):
 
         # 将字节流转换为 PIL Image
         img_load_start = time.time()
-        img = Image.open(BytesIO(image_bytes))
+        img = load_image_from_bytes(image_bytes, request_id)
         logger.info(f"[remove-background-full #{request_id}] PIL Image加载完成，耗时: {time.time() - img_load_start:.3f}秒")
 
         # 处理图片：抠图并转换为 base64
@@ -134,7 +177,7 @@ async def remove_background_binary(request: Request):
 
         # 将字节流转换为 PIL Image
         img_load_start = time.time()
-        img = Image.open(BytesIO(image_bytes))
+        img = load_image_from_bytes(image_bytes, request_id)
         logger.info(f"[remove-background-binary #{request_id}] PIL Image加载完成，耗时: {time.time() - img_load_start:.3f}秒")
 
         # 处理图片：抠图
@@ -146,8 +189,7 @@ async def remove_background_binary(request: Request):
         # 保存为PNG二进制
         buffer_start = time.time()
         buffer = BytesIO()
-        # rgba_img.save(buffer, format="PNG")
-        rgba_img.save(buffer, format="WEBP", lossless=True)
+        rgba_img.save(buffer, format="PNG")
         # rgba_img.save(buffer, format="WEBP", lossless=False, quality=90)
         buffer.seek(0)
         logger.info(f"[remove-background-binary #{request_id}] PNG编码完成，大小: {len(buffer.getvalue())}字节，耗时: {time.time() - buffer_start:.3f}秒")
@@ -155,8 +197,8 @@ async def remove_background_binary(request: Request):
         total_elapsed = time.time() - start_time
         logger.info(f"[remove-background-binary #{request_id}] 请求处理完成，总耗时: {total_elapsed:.3f}秒")
         
-        # return response.raw(buffer.getvalue(),content_type="image/png")
-        return response.raw(buffer.getvalue(), content_type="image/webp")
+        return response.raw(buffer.getvalue(),content_type="image/png")
+        # return response.raw(buffer.getvalue(), content_type="image/webp")
     except Exception as e:
         # 捕获所有异常并返回错误信息
         error_msg = str(e)
